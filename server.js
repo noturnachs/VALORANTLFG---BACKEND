@@ -10,7 +10,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL, // Change this to your client URL
+    origin: process.env.CLIENT_URL, // Use the origin from .env file
     methods: ["GET", "POST"],
   },
 });
@@ -53,6 +53,9 @@ app.post("/api/parties", async (req, res) => {
       [partyCode, description]
     );
 
+    // Emit event for new party creation
+    io.emit("newParty", result.rows[0]);
+
     setTimeout(async () => {
       try {
         await pool.query("UPDATE parties SET expired = TRUE WHERE id = $1", [
@@ -70,7 +73,7 @@ app.post("/api/parties", async (req, res) => {
           err
         );
       }
-    }, 300000);
+    }, 300000); // 5 minutes
 
     res.json(result.rows[0]);
   } catch (err) {
