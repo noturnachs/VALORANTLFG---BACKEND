@@ -75,7 +75,8 @@ app.post("/api/parties", async (req, res) => {
       }
     }, 300000); // 5 minutes
 
-    res.json(result.rows[0]);
+    // Send success status code along with the party details
+    res.status(200).json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
