@@ -4,6 +4,7 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const http = require("http");
 const socketIo = require("socket.io");
+const filter = require("leo-profanity"); 
 require("dotenv").config();
 
 const app = express();
@@ -41,6 +42,9 @@ app.get("/api/parties", async (req, res) => {
 app.post("/api/parties", async (req, res) => {
   const { partyCode, description, serverTag } = req.body;
 
+  if (filter.check(partyCode) || filter.check(description)) {
+    return res.status(400).json({ error: "Profanity is not allowed" });
+  }
 
   if (partyCode.length > 6) {
     return res
@@ -66,7 +70,6 @@ app.post("/api/parties", async (req, res) => {
           `Party ${result.rows[0].id} with code: ${result.rows[0].party_code} has been set to expired`
         );
 
-        // Emit event to all connected clients
         io.emit("partyExpired", result.rows[0].id);
       } catch (err) {
         console.error(
@@ -76,7 +79,6 @@ app.post("/api/parties", async (req, res) => {
       }
     }, 300000); // 5 minutes
 
-    // Send success status code along with the party details
     res.status(200).json(result.rows[0]);
   } catch (err) {
     console.error(err);
