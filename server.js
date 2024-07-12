@@ -10,7 +10,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL, // Use the origin from .env file
+    origin: process.env.CLIENT_URL,
     methods: ["GET", "POST"],
   },
 });
@@ -39,7 +39,8 @@ app.get("/api/parties", async (req, res) => {
 });
 
 app.post("/api/parties", async (req, res) => {
-  const { partyCode, description } = req.body;
+  const { partyCode, description, serverTag } = req.body;
+
 
   if (partyCode.length > 6) {
     return res
@@ -49,8 +50,8 @@ app.post("/api/parties", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "INSERT INTO parties (party_code, description, created_at, expired) VALUES ($1, $2, NOW() AT TIME ZONE 'UTC', FALSE) RETURNING *",
-      [partyCode, description]
+      "INSERT INTO parties (party_code, description, created_at, expired, server_tag) VALUES ($1, $2, NOW() AT TIME ZONE 'UTC', FALSE, $3) RETURNING *",
+      [partyCode, description, serverTag]
     );
 
     // Emit event for new party creation
