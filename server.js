@@ -40,7 +40,8 @@ app.get("/api/parties", async (req, res) => {
 });
 
 app.post("/api/parties", async (req, res) => {
-  const { partyCode, description, serverTag, add_tags } = req.body;
+  const { partyCode, description, serverTag, add_tags, rank, gamemode } =
+    req.body;
 
   if (filter.check(partyCode) || filter.check(description)) {
     return res.status(400).json({ error: "Profanity is not allowed" });
@@ -53,12 +54,10 @@ app.post("/api/parties", async (req, res) => {
   }
 
   try {
-    // Ensure add_tags is an array or default to an empty array if undefined
     const tags = Array.isArray(add_tags) ? add_tags : [];
-
     const result = await pool.query(
-      "INSERT INTO parties (party_code, description, created_at, expired, server_tag, add_tags) VALUES ($1, $2, NOW() AT TIME ZONE 'UTC', FALSE, $3, $4) RETURNING *",
-      [partyCode, description, serverTag, tags] 
+      "INSERT INTO parties (party_code, description, created_at, expired, server_tag, add_tags, rank, gamemode) VALUES ($1, $2, NOW() AT TIME ZONE 'UTC', FALSE, $3, $4, $5, $6) RETURNING *",
+      [partyCode, description, serverTag, tags, rank, gamemode]
     );
 
     io.emit("newParty", result.rows[0]);
@@ -68,7 +67,7 @@ app.post("/api/parties", async (req, res) => {
         result.rows[0].id,
       ]);
       io.emit("partyExpired", result.rows[0].id);
-    }, 300000); 
+    }, 300000);
 
     res.status(200).json(result.rows[0]);
   } catch (err) {
@@ -76,6 +75,7 @@ app.post("/api/parties", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 
 
