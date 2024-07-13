@@ -28,7 +28,9 @@ app.use(bodyParser.json());
 
 app.get("/api/parties", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM parties");
+    const result = await pool.query(
+      "SELECT * FROM parties WHERE is_deleted = FALSE"
+    );
     if (result.rows.length === 0) {
       return res.status(200).json({ msg: "No parties found" });
     }
@@ -68,6 +70,14 @@ app.post("/api/parties", async (req, res) => {
       ]);
       io.emit("partyExpired", result.rows[0].id);
     }, 300000);
+
+
+    setTimeout(async () => {
+      await pool.query("UPDATE parties SET is_deleted = TRUE WHERE id = $1", [
+        result.rows[0].id,
+      ]);
+      io.emit("partyDeleted", result.rows[0].id); // Optionally notify the frontend
+    }, 3600000); 
 
     res.status(200).json(result.rows[0]);
   } catch (err) {
