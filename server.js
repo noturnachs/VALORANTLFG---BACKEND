@@ -97,11 +97,17 @@ let browser, page;
 
 const initializeBrowser = async () => {
   browser = await puppeteer.launch({
+    executablePath:
+      process.env.NODE_ENV === "production"
+        ? process.env.PUPPETEER_EXECUTABLE_PATH
+        : puppeteer.executablePath(),
     headless: true,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-notifications",
+      "--single-process",
+      "--no-zygote"
     ],
   });
   page = await browser.newPage();
