@@ -97,7 +97,7 @@ let browser, page;
 
 const initializeBrowser = async () => {
   browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
