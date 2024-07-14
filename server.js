@@ -107,7 +107,7 @@ const initializeBrowser = async () => {
       "--disable-setuid-sandbox",
       "--disable-notifications",
       // "--single-process",
-      // "--no-zygote",
+      "--no-zygote",
     ],
   });
   page = await browser.newPage();
