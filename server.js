@@ -4,7 +4,8 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const http = require("http");
 const socketIo = require("socket.io");
-const filter = require("leo-profanity"); 
+const filter = require("leo-profanity");
+const puppeteer = require("puppeteer");
 require("dotenv").config();
 
 const app = express();
@@ -71,13 +72,12 @@ app.post("/api/parties", async (req, res) => {
       io.emit("partyExpired", result.rows[0].id);
     }, 300000);
 
-
     setTimeout(async () => {
       await pool.query("UPDATE parties SET is_deleted = TRUE WHERE id = $1", [
         result.rows[0].id,
       ]);
       io.emit("partyDeleted", result.rows[0].id); // Optionally notify the frontend
-    }, 3600000); 
+    }, 3600000);
 
     res.status(200).json(result.rows[0]);
   } catch (err) {
@@ -86,9 +86,6 @@ app.post("/api/parties", async (req, res) => {
   }
 });
 
-
-
-
 io.on("connection", (socket) => {
   console.log("a user connected");
   socket.on("disconnect", () => {
@@ -96,7 +93,122 @@ io.on("connection", (socket) => {
   });
 });
 
+let browser, page;
+
+const initializeBrowser = async () => {
+  browser = await puppeteer.launch({
+    headless: false,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-notifications",
+    ],
+  });
+  page = await browser.newPage();
+  await page.goto(
+    "https://www.facebook.com/groups/valorantph/?sorting_setting=",
+    {
+      waitUntil: "networkidle2",
+    }
+  );
+
+  const emailSelector = 'input[name="email"]';
+  await page.waitForSelector(emailSelector);
+
+  // Wait for a random amount of time (between 1 and 3 seconds)
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        setTimeout(resolve, Math.floor(Math.random() * 2000) + 1000)
+      )
+  );
+
+  await page.type(emailSelector, "61550098922225");
+
+  const passwordSelector = 'input[name="pass"]';
+  await page.waitForSelector(passwordSelector);
+
+  // Wait for a random amount of time (between 1 and 3 seconds) before typing password
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        setTimeout(resolve, Math.floor(Math.random() * 2000) + 1000)
+      )
+  );
+  await page.type(passwordSelector, "$DANdan2003$");
+
+  // Wait for a random amount of time (between 1 and 3 seconds) before typing password
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        setTimeout(resolve, Math.floor(Math.random() * 2000) + 1000)
+      )
+  );
+
+  const loginButtonSelector = 'button[id="loginbutton"]';
+  await page.waitForSelector(loginButtonSelector);
+  await page.click(loginButtonSelector);
+
+  // Wait until the page is fully loaded
+  await page.waitForNavigation({ waitUntil: "networkidle2" });
+};
+
+const scrapeFacebookPosts = async () => {
+  try {
+    const scrapePosts = async () => {
+      return await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('div[dir="auto"].html-div'))
+          .map((post) => post.innerText)
+          .filter((text) => text.trim().length > 0);
+      });
+    };
+
+    const allPosts = new Set();
+    const maxPosts = 20;
+    const scrollTimes = 10;
+
+    for (let i = 0; i < scrollTimes; i++) {
+      await page.evaluate(() => {
+        window.scrollBy(0, window.innerHeight);
+      });
+
+      const previousHeight = await page.evaluate("document.body.scrollHeight");
+      await page.waitForFunction(
+        `document.body.scrollHeight > ${previousHeight}`
+      );
+
+      const posts = await scrapePosts();
+      posts.forEach((post) => allPosts.add(post));
+
+      if (allPosts.size >= maxPosts) {
+        break;
+      }
+    }
+
+    const postsArray = Array.from(allPosts);
+    console.log("Scraped posts:", postsArray);
+
+    return postsArray;
+  } catch (error) {
+    console.error("Error occurred:", error);
+    return [];
+  }
+};
+
+app.get("/api/posts", async (req, res) => {
+  try {
+    // Refresh the page
+    await page.reload({ waitUntil: ["networkidle0", "domcontentloaded"] });
+    const posts = await scrapeFacebookPosts();
+    res.json(posts);
+  } catch (error) {
+    console.error("Failed to scrape posts:", error);
+    res.json([]);
+  }
+});
+
 const port = process.env.PORT || 5000;
-server.listen(port, () => {
+server.listen(port, async () => {
   console.log(`Server is running on port ${port}`);
+  await initializeBrowser();
 });
