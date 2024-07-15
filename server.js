@@ -112,7 +112,7 @@ const initializeBrowser = async () => {
   });
   page = await browser.newPage();
   await page.goto(
-    "https://www.facebook.com/groups/valorantph/?sorting_setting=",
+    "https://www.facebook.com/login/device-based/regular/login/?login_attempt=1&next=https%3A%2F%2Fwww.facebook.com%2Fgroups%2Fvalorantph%2F%3Fsorting_setting%3DCHRONOLOGICAL&lwv=100",
     {
       waitUntil: "networkidle2",
     }
@@ -129,7 +129,7 @@ const initializeBrowser = async () => {
       )
   );
 
-  await page.type(emailSelector, "61550098922225");
+  await page.type(emailSelector, "61550306610693");
 
   const passwordSelector = 'input[name="pass"]';
   await page.waitForSelector(passwordSelector);
